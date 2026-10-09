@@ -1,5 +1,4 @@
 {
-  "version": 2,
   "cleanUrls": true,
   "headers": [
     {
@@ -21,7 +20,7 @@
       ]
     },
     {
-      "source": "/(style.css|app.js)",
+      "source": "/(.*)",
       "headers": [
         {
           "key": "Cache-Control",

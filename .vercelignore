@@ -1,0 +1,7 @@
+local-server.js
+package.json
+package-lock.json
+*.zip
+*.tar.gz
+*.rar
+.gemini/

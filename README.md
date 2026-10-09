@@ -42,7 +42,9 @@ git clone https://github.com/GouravPatidar91/Arham-Aura.git
 cd Arham-Aura
 
 # Start local server
-node server.js
+node local-server.js
+# or
+npm run dev
 ```
 
 Visit `http://localhost:3000` in your browser.
