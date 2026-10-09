@@ -1,9 +1,0 @@
-{
-  "name": "arham-aura",
-  "version": "1.0.0",
-  "description": "Arham Aurà Luxury Handcrafted Botanical Candles",
-  "scripts": {
-    "start": "node local-server.js",
-    "dev": "node local-server.js"
-  }
-}
