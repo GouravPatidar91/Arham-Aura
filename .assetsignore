@@ -1,0 +1,20 @@
+# ==============================================================================
+# CLOUDFLARE WRANGLER & ASSETS IGNORE CONFIGURATION
+# ==============================================================================
+
+# Exclude Git history packfiles (Prevents 25MB asset size error)
+.git
+.git/**
+.github
+.github/**
+.gitignore
+
+# Exclude Local dev files and configuration
+.vscode
+.idea
+*.log
+local-server.js
+README.md
+package.json
+package-lock.json
+vercel.json

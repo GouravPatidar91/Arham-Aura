@@ -1,0 +1,14 @@
+# Exclude Git history and dev files from Cloudflare deployment
+.git
+.git/**
+.github
+.github/**
+.gitignore
+.vscode
+.idea
+*.log
+local-server.js
+README.md
+package.json
+package-lock.json
+vercel.json
