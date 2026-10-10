@@ -541,9 +541,18 @@
       });
     }
 
+    function getCenterOffset() {
+      const card = track.querySelector('.collection-card');
+      if (!card) return 0;
+      const cardWidth = card.getBoundingClientRect().width;
+      const viewportWidth = viewport.clientWidth;
+      return (viewportWidth - cardWidth) / 2;
+    }
+
     function setTrackPosition(animate = true) {
       const step = getCardStep();
-      const targetX = -(currentIndex * step);
+      const centerOffset = getCenterOffset();
+      const targetX = Math.round(centerOffset - (currentIndex * step));
       currentTranslate = targetX;
       prevTranslate = targetX;
 
@@ -881,13 +890,22 @@
       });
     }
 
+    function getCenterOffset() {
+      const card = track.querySelector('.review-card');
+      if (!card) return 0;
+      const cardWidth = card.getBoundingClientRect().width;
+      const viewportWidth = viewport.clientWidth;
+      return (viewportWidth - cardWidth) / 2;
+    }
+
     function setTrackPosition(animate = true) {
       if (!isMobile()) {
         track.style.transform = '';
         return;
       }
       const step = getCardStep();
-      const targetX = -(currentIndex * step);
+      const centerOffset = getCenterOffset();
+      const targetX = Math.round(centerOffset - (currentIndex * step));
       currentTranslate = targetX;
       prevTranslate = targetX;
 

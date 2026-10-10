@@ -321,8 +321,18 @@ a {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   font-weight: 500;
+  white-space: nowrap;
+  flex-shrink: 0;
   transition: var(--transition-smooth);
   border: 1px solid var(--color-text-primary);
+}
+
+.btn-text-full {
+  display: inline;
+}
+
+.btn-text-short {
+  display: none;
 }
 
 .btn-primary:hover {
@@ -1085,13 +1095,17 @@ a {
   border-color: var(--color-gold);
 }
 
-/* Carousel Navigation Arrows */
+/* Carousel Controls Row below cards */
+.carousel-controls-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+}
+
 .carousel-arrow {
-  position: absolute;
-  top: calc(50% - 1rem);
-  transform: translateY(-50%);
-  width: 48px;
-  height: 48px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   background: rgba(250, 247, 242, 0.95);
   backdrop-filter: blur(14px);
@@ -1103,28 +1117,21 @@ a {
   justify-content: center;
   cursor: pointer;
   z-index: 10;
-  box-shadow: 0 8px 24px rgba(35, 27, 23, 0.12);
+  box-shadow: 0 4px 16px rgba(35, 27, 23, 0.1);
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  flex-shrink: 0;
 }
 
 .carousel-arrow:hover {
   background: var(--color-text-primary);
   color: #FAF7F2;
   border-color: var(--color-text-primary);
-  transform: translateY(-50%) scale(1.08);
-  box-shadow: 0 12px 28px rgba(35, 27, 23, 0.22);
+  transform: scale(1.08);
+  box-shadow: 0 8px 24px rgba(35, 27, 23, 0.2);
 }
 
 .carousel-arrow:active {
-  transform: translateY(-50%) scale(0.96);
-}
-
-.carousel-prev {
-  left: 0.5rem;
-}
-
-.carousel-next {
-  right: 0.5rem;
+  transform: scale(0.95);
 }
 
 /* Pagination Bar & Progress Dots */
@@ -1133,7 +1140,7 @@ a {
   flex-direction: column;
   align-items: center;
   gap: 0.75rem;
-  margin-top: 0.5rem;
+  margin-top: 1rem;
 }
 
 .carousel-dots {
@@ -1861,38 +1868,80 @@ a {
 @media (max-width: 768px) {
   /* Header & Navigation Bar */
   .header {
-    height: 64px;
-    padding: 0 1rem;
+    height: 60px;
+    padding: 0 0.85rem;
+    gap: 0.5rem;
   }
   .brand-signature {
-    gap: 0.65rem;
-    height: 48px;
-    max-height: 48px;
+    gap: 0.5rem;
+    height: 44px;
+    max-height: 44px;
+    min-width: 0;
+    flex-shrink: 1;
   }
   .brand-logo-img {
-    width: 38px !important;
-    height: 38px !important;
-    max-width: 38px !important;
-    max-height: 38px !important;
+    width: 36px !important;
+    height: 36px !important;
+    max-width: 36px !important;
+    max-height: 36px !important;
   }
   .brand-latin {
-    font-size: 0.92rem;
-    letter-spacing: 0.12em;
+    font-size: 0.86rem;
+    letter-spacing: 0.08em;
+    white-space: nowrap;
   }
   .brand-sub {
-    font-size: 0.52rem;
-    letter-spacing: 0.22em;
+    font-size: 0.48rem;
+    letter-spacing: 0.16em;
+    white-space: nowrap;
   }
-  .btn-primary {
-    padding: 0.45rem 0.85rem;
-    font-size: 0.68rem;
-    gap: 0.4rem;
+  .header-actions {
+    flex-shrink: 0;
+  }
+  .header .btn-primary {
+    padding: 0.42rem 0.75rem;
+    font-size: 0.65rem;
+    gap: 0.35rem;
     letter-spacing: 0.04em;
+    white-space: nowrap;
+    flex-shrink: 0;
   }
-  .btn-primary svg {
+  .header .btn-primary svg {
     width: 13px;
     height: 13px;
+    flex-shrink: 0;
   }
+
+@media (max-width: 440px) {
+  .btn-text-full {
+    display: none;
+  }
+  .btn-text-short {
+    display: inline;
+  }
+  .header .btn-primary {
+    padding: 0.38rem 0.65rem;
+    font-size: 0.62rem;
+    letter-spacing: 0.03em;
+  }
+  .brand-signature {
+    gap: 0.42rem;
+  }
+  .brand-logo-img {
+    width: 34px !important;
+    height: 34px !important;
+    max-width: 34px !important;
+    max-height: 34px !important;
+  }
+  .brand-latin {
+    font-size: 0.82rem;
+    letter-spacing: 0.06em;
+  }
+  .brand-sub {
+    font-size: 0.44rem;
+    letter-spacing: 0.12em;
+  }
+}
 
   /* Canvas Hero & Scrubbing Runway */
   .scrub-section {
@@ -2078,40 +2127,54 @@ a {
 
   /* Collections Carousel Mobile */
   .carousel-wrapper {
-    padding: 0 46px !important; /* Dedicated space so small buttons never overlap cards */
+    padding: 0 !important;
     width: 100% !important;
     box-sizing: border-box !important;
+    overflow: hidden;
   }
   .carousel-viewport {
-    padding: 1rem 0 1.5rem;
+    padding: 1rem 0 1.25rem !important;
+    width: 100% !important;
+    overflow: hidden;
   }
   .collections-grid.carousel-track {
     gap: 1.15rem;
   }
+  .carousel-controls-row {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 1.25rem !important;
+    margin-bottom: 0.25rem;
+  }
   .carousel-arrow {
-    width: 34px !important;
-    height: 34px !important;
-    box-shadow: 0 4px 14px rgba(35, 27, 23, 0.12);
+    width: 38px !important;
+    height: 38px !important;
+    box-shadow: 0 4px 14px rgba(35, 27, 23, 0.12) !important;
+    position: static !important;
+    transform: none !important;
   }
   .carousel-arrow svg {
-    width: 15px !important;
-    height: 15px !important;
+    width: 16px !important;
+    height: 16px !important;
     stroke-width: 2.3;
   }
-  .carousel-prev {
-    left: 4px !important;
-  }
+  .carousel-prev,
   .carousel-next {
-    right: 4px !important;
+    position: static !important;
+    left: auto !important;
+    right: auto !important;
+    top: auto !important;
+    transform: none !important;
   }
   .collection-card {
-    flex: 0 0 245px;
-    width: 245px;
-    max-width: 245px;
-    border-radius: 16px;
+    flex: 0 0 260px;
+    width: 260px;
+    max-width: 260px;
+    border-radius: 18px;
   }
   .card-media {
-    height: 215px;
+    height: 225px;
   }
   .card-body {
     padding: 1.15rem 1rem;
@@ -2128,15 +2191,15 @@ a {
 
   /* Reviews Carousel Mobile (Matching Collection Cards) */
   .reviews-carousel-wrapper {
-    padding: 0 46px !important;
+    padding: 0 !important;
     width: 100% !important;
     box-sizing: border-box !important;
-    display: flex;
-    align-items: center;
+    display: block;
     position: relative;
+    overflow: hidden;
   }
   .reviews-viewport {
-    padding: 0.75rem 0 1.25rem;
+    padding: 0.75rem 0 1.25rem !important;
     overflow: hidden;
     cursor: grab;
     user-select: none;
@@ -2157,11 +2220,11 @@ a {
     transition: none !important;
   }
   .review-card {
-    flex: 0 0 250px;
-    width: 250px;
-    max-width: 250px;
-    border-radius: 16px;
-    padding: 1.5rem 1.25rem;
+    flex: 0 0 270px;
+    width: 270px;
+    max-width: 270px;
+    border-radius: 18px;
+    padding: 1.6rem 1.4rem;
     box-sizing: border-box;
   }
   .review-text {
@@ -2172,21 +2235,20 @@ a {
   .reviews-prev,
   .reviews-next {
     display: flex !important;
-    width: 34px !important;
-    height: 34px !important;
-    box-shadow: 0 4px 14px rgba(35, 27, 23, 0.12);
+    position: static !important;
+    left: auto !important;
+    right: auto !important;
+    top: auto !important;
+    transform: none !important;
+    width: 38px !important;
+    height: 38px !important;
+    box-shadow: 0 4px 14px rgba(35, 27, 23, 0.12) !important;
   }
   .reviews-prev svg,
   .reviews-next svg {
-    width: 15px !important;
-    height: 15px !important;
+    width: 16px !important;
+    height: 16px !important;
     stroke-width: 2.3;
-  }
-  .reviews-prev {
-    left: 4px !important;
-  }
-  .reviews-next {
-    right: 4px !important;
   }
   .reviews-pagination-bar {
     display: flex !important;
