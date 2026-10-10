@@ -188,10 +188,16 @@
   function resizeCanvas() {
     const dpr = Math.min(window.devicePixelRatio || 1, 2); // Cap at 2x for stellar performance
     const width = window.innerWidth;
-    const height = window.innerHeight;
+    const isMobileDevice = width <= 768;
 
-    canvas.width = width * dpr;
-    canvas.height = height * dpr;
+    // On mobile devices, size the buffer to the maximum physical screen height (screen.height)
+    // so URL address bar retraction never leaves an unpainted buffer or white padding gap
+    const height = isMobileDevice
+      ? Math.max(window.innerHeight, window.screen.availHeight || 0, window.screen.height || 0)
+      : window.innerHeight;
+
+    canvas.width = Math.round(width * dpr);
+    canvas.height = Math.round(height * dpr);
 
     // Draw current frame with correct dimensions
     renderFrame(currentFrameIndex);
@@ -214,8 +220,8 @@
 
     const isPortrait = ch > cw;
 
-    // In portrait mode, scale up by 1.18x so bouquet can be elevated without exposing any canvas gap
-    const extraScale = isPortrait ? 1.18 : 1.0;
+    // In portrait mode, scale up by 1.25x so bouquet has generous bleed margin on all sides
+    const extraScale = isPortrait ? 1.25 : 1.0;
     const baseRatio = Math.max(cw / iw, ch / ih);
     const ratio = baseRatio * extraScale;
 
