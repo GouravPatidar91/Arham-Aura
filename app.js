@@ -35,6 +35,7 @@
   const images = new Array(TOTAL_FRAMES);
   const loadedFlags = new Array(TOTAL_FRAMES).fill(false);
   let loadedCount = 0;
+  let totalAssets = TOTAL_FRAMES;
   let targetFrameIndex = 0;
   let currentFrameIndex = 0;
   let isDragging = false;
@@ -111,14 +112,45 @@
     }
   }
 
-  // --- Multi-Stage High Performance Frame Preloader with Live Progress ---
-  function preloadAllFrames() {
-    return new Promise((resolve) => {
-      // Safety safeguard: Never keep user stuck on preloader if network drops
-      const safetyTimer = setTimeout(() => {
-        finishLoading(resolve);
-      }, 9000);
+  // --- Collect & Preload ALL Website Assets (Products, Scent Notes, Craft, Founder, Brand) ---
+  function getStaticAssetUrls() {
+    const urls = new Set();
+    document.querySelectorAll('img').forEach((img) => {
+      const src = img.getAttribute('src');
+      if (src && !src.includes('ezgif-frame')) {
+        urls.add(src);
+      }
+    });
+    return Array.from(urls);
+  }
 
+  function preloadStaticAssets(urls) {
+    return new Promise((resolve) => {
+      if (!urls || urls.length === 0) {
+        resolve();
+        return;
+      }
+
+      let done = 0;
+      urls.forEach((url) => {
+        const img = new Image();
+        const onFinish = () => {
+          loadedCount++;
+          done++;
+          updateProgress();
+          if (done >= urls.length) resolve();
+        };
+
+        img.onload = onFinish;
+        img.onerror = onFinish;
+        img.src = url;
+      });
+    });
+  }
+
+  // Multi-Stage High Performance 3D Frame Sequence Preloader
+  function preload3DSequence() {
+    return new Promise((resolve) => {
       // 1. First priority: Load Frame 0 immediately for initial Canvas Paint
       const heroImg = new Image();
       heroImg.src = getFrameUrl(0);
@@ -133,18 +165,49 @@
         loadKeyframes(() => {
           // 3. Load remaining frames to reach 100% full quality
           loadRemainingFrames(() => {
-            clearTimeout(safetyTimer);
-            finishLoading(resolve);
+            resolve();
           });
         });
       };
       heroImg.onerror = () => {
         console.warn('Initial frame failed to load:', heroImg.src);
-        loadRemainingFrames(() => {
+        loadRemainingFrames(resolve);
+      };
+    });
+  }
+
+  // --- Complete Site Preloader (3D Frames + All Product & Static Assets) ---
+  function preloadAllWebsiteAssets() {
+    return new Promise((resolve) => {
+      const staticUrls = getStaticAssetUrls();
+      totalAssets = TOTAL_FRAMES + staticUrls.length;
+
+      // Safety safeguard: Never keep user stuck on preloader if network drops
+      const safetyTimer = setTimeout(() => {
+        finishLoading(resolve);
+      }, 9000);
+
+      let framesDone = false;
+      let staticDone = false;
+
+      function checkAllFinished() {
+        if (framesDone && staticDone) {
           clearTimeout(safetyTimer);
           finishLoading(resolve);
-        });
-      };
+        }
+      }
+
+      // 1. Preload static website assets (Product photos, notes artwork, logos, avatars)
+      preloadStaticAssets(staticUrls).then(() => {
+        staticDone = true;
+        checkAllFinished();
+      });
+
+      // 2. Preload 3D Sequence Frames
+      preload3DSequence().then(() => {
+        framesDone = true;
+        checkAllFinished();
+      });
     });
   }
 
@@ -237,17 +300,19 @@
   }
 
   function updateProgress() {
-    const percent = Math.min(100, Math.round((loadedCount / TOTAL_FRAMES) * 100));
+    const percent = Math.min(100, Math.round((loadedCount / totalAssets) * 100));
     if (progressBar) progressBar.style.width = `${percent}%`;
     if (progressPercent) progressPercent.textContent = `${percent}%`;
 
     if (progressText) {
       if (percent < 25) {
-        progressText.textContent = 'Initializing 3D Experience...';
+        progressText.textContent = 'Initializing 3D Botanical Sanctuary...';
       } else if (percent < 60) {
-        progressText.textContent = 'Loading Botanical Candle Frames...';
-      } else if (percent < 95) {
-        progressText.textContent = 'Calibrating 360° Studio Lighting...';
+        progressText.textContent = 'Preloading Product Catalog & Scent Notes...';
+      } else if (percent < 90) {
+        progressText.textContent = 'Sculpting 360° Candle Sequence...';
+      } else if (percent < 100) {
+        progressText.textContent = 'Calibrating Atelier Studio Lighting...';
       } else {
         progressText.textContent = 'Welcome to Arham Aurà';
       }
@@ -1159,9 +1224,9 @@
     // Initial canvas sizing
     resizeCanvas();
 
-    // Start full 3D frame sequence preloading with live progress bar
-    preloadAllFrames().then(() => {
-      console.log('Arham Aurà 3D Sequence: All 299 frames loaded for smooth 360 experience.');
+    // Start complete site asset preloading (3D frames + products + notes + branding)
+    preloadAllWebsiteAssets().then(() => {
+      console.log('Arham Aurà: All 3D sequence frames and product assets loaded successfully.');
     });
 
     requestAnimationFrame(updateAnimationLoop);
