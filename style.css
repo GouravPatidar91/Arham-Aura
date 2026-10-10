@@ -58,8 +58,6 @@ html {
 
 body {
   overflow-x: hidden;
-  background-color: var(--color-bg);
-  overscroll-behavior-y: none;
   line-height: 1.6;
 }
 
@@ -370,7 +368,7 @@ a {
   left: 0;
   width: 100%;
   height: 100vh;
-  height: 100lvh; /* Lock to Large Viewport Height to prevent URL bar jump on scroll */
+  height: 100dvh;
   overflow: hidden;
   display: flex;
   align-items: center;
@@ -1899,14 +1897,6 @@ a {
   /* Canvas Hero & Scrubbing Runway */
   .scrub-section {
     height: 380vh; /* Smooth, natural scroll distance on mobile */
-    background: #FAF7F2;
-  }
-
-  .canvas-sticky-wrapper {
-    height: 100vh;
-    height: 100lvh;
-    min-height: -webkit-fill-available;
-    background: #FAF7F2;
   }
 
   /* Mobile HUD Controls */
