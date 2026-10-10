@@ -111,68 +111,158 @@
     }
   }
 
-  // Fast Progressive Initial Load:
-  // 1. Load Frame 0 first -> Paint immediately & dismiss preloader (< 400ms)
-  // 2. Stream keyframes (every 10 frames = ~30 total) gently in background with low concurrency
-  // 3. Load other frames strictly on-demand as user scrolls or drags
-  function preloadInitialSequence() {
+  // --- Multi-Stage High Performance Frame Preloader with Live Progress ---
+  function preloadAllFrames() {
     return new Promise((resolve) => {
-      // Emergency safeguard: dismiss preloader quickly (< 500ms) under all network conditions
-      const safetyTimeout = setTimeout(dismissPreloader, 500);
+      // Safety safeguard: Never keep user stuck on preloader if network drops
+      const safetyTimer = setTimeout(() => {
+        finishLoading(resolve);
+      }, 9000);
 
-      loadSingleFrame(0, () => {
-        clearTimeout(safetyTimeout);
-        // Immediate First Paint!
+      // 1. First priority: Load Frame 0 immediately for initial Canvas Paint
+      const heroImg = new Image();
+      heroImg.src = getFrameUrl(0);
+      heroImg.onload = () => {
+        images[0] = heroImg;
+        loadedFlags[0] = true;
+        loadedCount++;
         renderFrame(0);
-        dismissPreloader();
-        resolve();
+        updateProgress();
 
-        // After initial paint, stream keyframes gently in idle queue
-        streamKeyframesProgressively();
-      });
+        // 2. Load keyframes first (every 5 frames = 60 frames)
+        loadKeyframes(() => {
+          // 3. Load remaining frames to reach 100% full quality
+          loadRemainingFrames(() => {
+            clearTimeout(safetyTimer);
+            finishLoading(resolve);
+          });
+        });
+      };
+      heroImg.onerror = () => {
+        console.warn('Initial frame failed to load:', heroImg.src);
+        loadRemainingFrames(() => {
+          clearTimeout(safetyTimer);
+          finishLoading(resolve);
+        });
+      };
     });
   }
 
-  // Stream a sparse set of keyframes (every 10 frames = ~30 total) gently without choking bandwidth
-  function streamKeyframesProgressively() {
-    const keyframeIndices = [];
-    const step = 10;
+  function loadKeyframes(onKeyframesLoaded) {
+    const step = 5;
+    const keyframes = [];
     for (let i = step; i < TOTAL_FRAMES; i += step) {
-      keyframeIndices.push(i);
+      keyframes.push(i);
     }
 
-    let currentIndex = 0;
-    function loadNextKeyframeBatch() {
-      if (currentIndex >= keyframeIndices.length) return;
+    if (keyframes.length === 0) {
+      onKeyframesLoaded();
+      return;
+    }
 
-      // Load up to 2 keyframes at a time to keep bandwidth clear
-      const batch = keyframeIndices.slice(currentIndex, currentIndex + 2);
-      currentIndex += 2;
+    let keyframesLoaded = 0;
+    keyframes.forEach((idx) => {
+      const img = new Image();
+      img.src = getFrameUrl(idx);
+      img.onload = () => {
+        images[idx] = img;
+        loadedFlags[idx] = true;
+        loadedCount++;
+        keyframesLoaded++;
+        updateProgress();
 
-      let batchDone = 0;
-      batch.forEach((idx) => {
-        loadSingleFrame(idx, () => {
-          batchDone++;
-          if (batchDone >= batch.length) {
-            // Wait for idle time or 80ms before next batch so network remains crystal clear
-            if ('requestIdleCallback' in window) {
-              window.requestIdleCallback(() => loadNextKeyframeBatch(), { timeout: 200 });
-            } else {
-              setTimeout(loadNextKeyframeBatch, 80);
-            }
+        if (keyframesLoaded >= keyframes.length) {
+          onKeyframesLoaded();
+        }
+      };
+      img.onerror = () => {
+        keyframesLoaded++;
+        if (keyframesLoaded >= keyframes.length) onKeyframesLoaded();
+      };
+    });
+  }
+
+  function loadRemainingFrames(onComplete) {
+    const pendingIndices = [];
+    for (let i = 0; i < TOTAL_FRAMES; i++) {
+      if (!loadedFlags[i]) pendingIndices.push(i);
+    }
+
+    if (pendingIndices.length === 0) {
+      onComplete();
+      return;
+    }
+
+    let remainingDone = 0;
+    const batchSize = 16;
+    let nextIndex = 0;
+
+    function loadNextBatch() {
+      if (nextIndex >= pendingIndices.length) return;
+
+      const currentBatch = pendingIndices.slice(nextIndex, nextIndex + batchSize);
+      nextIndex += batchSize;
+
+      currentBatch.forEach((idx) => {
+        const img = new Image();
+        img.src = getFrameUrl(idx);
+        img.onload = () => {
+          images[idx] = img;
+          loadedFlags[idx] = true;
+          loadedCount++;
+          remainingDone++;
+          updateProgress();
+
+          if (remainingDone >= pendingIndices.length) {
+            onComplete();
+          } else {
+            loadNextBatch();
           }
-        });
+        };
+        img.onerror = () => {
+          remainingDone++;
+          if (remainingDone >= pendingIndices.length) {
+            onComplete();
+          } else {
+            loadNextBatch();
+          }
+        };
       });
     }
 
-    // Start background streaming after 250ms to allow fonts & core layout to finish first
-    setTimeout(loadNextKeyframeBatch, 250);
+    // Launch concurrent batches for fast parallel download
+    for (let b = 0; b < 4; b++) {
+      loadNextBatch();
+    }
   }
 
   function updateProgress() {
-    const percent = Math.min(100, Math.round((loadedCount / 30) * 100));
+    const percent = Math.min(100, Math.round((loadedCount / TOTAL_FRAMES) * 100));
     if (progressBar) progressBar.style.width = `${percent}%`;
     if (progressPercent) progressPercent.textContent = `${percent}%`;
+
+    if (progressText) {
+      if (percent < 25) {
+        progressText.textContent = 'Initializing 3D Experience...';
+      } else if (percent < 60) {
+        progressText.textContent = 'Loading Botanical Candle Frames...';
+      } else if (percent < 95) {
+        progressText.textContent = 'Calibrating 360° Studio Lighting...';
+      } else {
+        progressText.textContent = 'Welcome to Arham Aurà';
+      }
+    }
+  }
+
+  function finishLoading(onComplete) {
+    if (progressBar) progressBar.style.width = '100%';
+    if (progressPercent) progressPercent.textContent = '100%';
+    if (progressText) progressText.textContent = 'Welcome to Arham Aurà';
+
+    setTimeout(() => {
+      dismissPreloader();
+      if (onComplete) onComplete();
+    }, 350);
   }
 
   function dismissPreloader() {
@@ -180,7 +270,7 @@
       preloader.classList.add('hidden');
       setTimeout(() => {
         if (preloader) preloader.style.display = 'none';
-      }, 300);
+      }, 700);
     }
   }
 
@@ -1069,9 +1159,9 @@
     // Initial canvas sizing
     resizeCanvas();
 
-    // Start progressive frame sequence engine
-    preloadInitialSequence().then(() => {
-      console.log('Arham Aurà 3D Sequence: Hero painted, streaming progressively.');
+    // Start full 3D frame sequence preloading with live progress bar
+    preloadAllFrames().then(() => {
+      console.log('Arham Aurà 3D Sequence: All 299 frames loaded for smooth 360 experience.');
     });
 
     requestAnimationFrame(updateAnimationLoop);
