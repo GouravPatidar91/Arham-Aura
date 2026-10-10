@@ -124,6 +124,7 @@
     return Array.from(urls);
   }
 
+  // Preload static website assets (Product photos, notes artwork, logos, icons)
   function preloadStaticAssets(urls) {
     return new Promise((resolve) => {
       if (!urls || urls.length === 0) {
@@ -131,47 +132,124 @@
         return;
       }
 
-      let done = 0;
+      let remaining = urls.length;
       urls.forEach((url) => {
         const img = new Image();
         const onFinish = () => {
           loadedCount++;
-          done++;
           updateProgress();
-          if (done >= urls.length) resolve();
+          remaining--;
+          if (remaining <= 0) {
+            resolve();
+          }
         };
 
         img.onload = onFinish;
-        img.onerror = onFinish;
+        img.onerror = () => {
+          console.warn('Static asset could not be preloaded:', url);
+          onFinish();
+        };
         img.src = url;
       });
     });
   }
 
-  // Multi-Stage High Performance 3D Frame Sequence Preloader
+  // Robust Concurrent Worker Pool Preloader for 3D Bouquet Frames
   function preload3DSequence() {
     return new Promise((resolve) => {
-      // 1. First priority: Load Frame 0 immediately for initial Canvas Paint
+      // 1. Priority Frame 0: Load immediately for instant initial canvas paint
       const heroImg = new Image();
       heroImg.src = getFrameUrl(0);
-      heroImg.onload = () => {
-        images[0] = heroImg;
-        loadedFlags[0] = true;
+
+      const onHeroLoaded = (imgObj) => {
+        if (imgObj) {
+          images[0] = imgObj;
+          loadedFlags[0] = true;
+          renderFrame(0);
+        }
         loadedCount++;
-        renderFrame(0);
         updateProgress();
 
-        // 2. Load keyframes first (every 5 frames = 60 frames)
-        loadKeyframes(() => {
-          // 3. Load remaining frames to reach 100% full quality
-          loadRemainingFrames(() => {
-            resolve();
-          });
-        });
+        // 2. Queue remaining frames (1 to TOTAL_FRAMES - 1)
+        // Order: Keyframes first (step of 5), followed by all intermediate frames
+        const queue = [];
+        const queuedSet = new Set();
+        queuedSet.add(0);
+
+        for (let i = 5; i < TOTAL_FRAMES; i += 5) {
+          queue.push(i);
+          queuedSet.add(i);
+        }
+
+        for (let i = 1; i < TOTAL_FRAMES; i++) {
+          if (!queuedSet.has(i)) {
+            queue.push(i);
+            queuedSet.add(i);
+          }
+        }
+
+        if (queue.length === 0) {
+          resolve();
+          return;
+        }
+
+        // Concurrency pool: 8 parallel workers for rapid stream downloading
+        const CONCURRENCY = 8;
+        let queueIndex = 0;
+        let activeWorkers = 0;
+
+        function runWorker() {
+          if (queueIndex >= queue.length) {
+            if (activeWorkers === 0) {
+              resolve();
+            }
+            return;
+          }
+
+          const frameIdx = queue[queueIndex++];
+          activeWorkers++;
+
+          function handleFrameDone(loadedImg) {
+            if (loadedImg && !loadedFlags[frameIdx]) {
+              images[frameIdx] = loadedImg;
+              loadedFlags[frameIdx] = true;
+            }
+            loadedCount++;
+            updateProgress();
+            activeWorkers--;
+
+            if (queueIndex >= queue.length && activeWorkers === 0) {
+              resolve();
+            } else {
+              runWorker();
+            }
+          }
+
+          const img = new Image();
+          img.onload = () => handleFrameDone(img);
+          img.onerror = () => {
+            // One retry attempt in case of temporary network glitch
+            const retryImg = new Image();
+            retryImg.onload = () => handleFrameDone(retryImg);
+            retryImg.onerror = () => {
+              console.warn(`Frame ${frameIdx} failed to load`);
+              handleFrameDone(null);
+            };
+            retryImg.src = getFrameUrl(frameIdx);
+          };
+          img.src = getFrameUrl(frameIdx);
+        }
+
+        const workersToStart = Math.min(CONCURRENCY, queue.length);
+        for (let w = 0; w < workersToStart; w++) {
+          runWorker();
+        }
       };
+
+      heroImg.onload = () => onHeroLoaded(heroImg);
       heroImg.onerror = () => {
-        console.warn('Initial frame failed to load:', heroImg.src);
-        loadRemainingFrames(resolve);
+        console.warn('Initial frame 0 failed to load:', heroImg.src);
+        onHeroLoaded(null);
       };
     });
   }
@@ -181,122 +259,31 @@
     return new Promise((resolve) => {
       const staticUrls = getStaticAssetUrls();
       totalAssets = TOTAL_FRAMES + staticUrls.length;
+      loadedCount = 0;
+      updateProgress();
 
-      // Safety safeguard: Never keep user stuck on preloader if network drops
-      const safetyTimer = setTimeout(() => {
-        finishLoading(resolve);
-      }, 9000);
-
-      let framesDone = false;
-      let staticDone = false;
-
-      function checkAllFinished() {
-        if (framesDone && staticDone) {
-          clearTimeout(safetyTimer);
+      let isFinished = false;
+      function handleComplete() {
+        if (!isFinished) {
+          isFinished = true;
           finishLoading(resolve);
         }
       }
 
-      // 1. Preload static website assets (Product photos, notes artwork, logos, avatars)
-      preloadStaticAssets(staticUrls).then(() => {
-        staticDone = true;
-        checkAllFinished();
-      });
+      // Safeguard timeout (60 seconds) strictly for offline/network disconnection safeguard
+      const emergencyTimer = setTimeout(() => {
+        console.warn('Preloader: emergency timeout triggered');
+        handleComplete();
+      }, 60000);
 
-      // 2. Preload 3D Sequence Frames
-      preload3DSequence().then(() => {
-        framesDone = true;
-        checkAllFinished();
+      Promise.all([
+        preloadStaticAssets(staticUrls),
+        preload3DSequence()
+      ]).then(() => {
+        clearTimeout(emergencyTimer);
+        handleComplete();
       });
     });
-  }
-
-  function loadKeyframes(onKeyframesLoaded) {
-    const step = 5;
-    const keyframes = [];
-    for (let i = step; i < TOTAL_FRAMES; i += step) {
-      keyframes.push(i);
-    }
-
-    if (keyframes.length === 0) {
-      onKeyframesLoaded();
-      return;
-    }
-
-    let keyframesLoaded = 0;
-    keyframes.forEach((idx) => {
-      const img = new Image();
-      img.src = getFrameUrl(idx);
-      img.onload = () => {
-        images[idx] = img;
-        loadedFlags[idx] = true;
-        loadedCount++;
-        keyframesLoaded++;
-        updateProgress();
-
-        if (keyframesLoaded >= keyframes.length) {
-          onKeyframesLoaded();
-        }
-      };
-      img.onerror = () => {
-        keyframesLoaded++;
-        if (keyframesLoaded >= keyframes.length) onKeyframesLoaded();
-      };
-    });
-  }
-
-  function loadRemainingFrames(onComplete) {
-    const pendingIndices = [];
-    for (let i = 0; i < TOTAL_FRAMES; i++) {
-      if (!loadedFlags[i]) pendingIndices.push(i);
-    }
-
-    if (pendingIndices.length === 0) {
-      onComplete();
-      return;
-    }
-
-    let remainingDone = 0;
-    const batchSize = 16;
-    let nextIndex = 0;
-
-    function loadNextBatch() {
-      if (nextIndex >= pendingIndices.length) return;
-
-      const currentBatch = pendingIndices.slice(nextIndex, nextIndex + batchSize);
-      nextIndex += batchSize;
-
-      currentBatch.forEach((idx) => {
-        const img = new Image();
-        img.src = getFrameUrl(idx);
-        img.onload = () => {
-          images[idx] = img;
-          loadedFlags[idx] = true;
-          loadedCount++;
-          remainingDone++;
-          updateProgress();
-
-          if (remainingDone >= pendingIndices.length) {
-            onComplete();
-          } else {
-            loadNextBatch();
-          }
-        };
-        img.onerror = () => {
-          remainingDone++;
-          if (remainingDone >= pendingIndices.length) {
-            onComplete();
-          } else {
-            loadNextBatch();
-          }
-        };
-      });
-    }
-
-    // Launch concurrent batches for fast parallel download
-    for (let b = 0; b < 4; b++) {
-      loadNextBatch();
-    }
   }
 
   function updateProgress() {
