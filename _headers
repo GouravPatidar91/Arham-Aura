@@ -1,0 +1,63 @@
+# ==============================================================================
+# CLOUDFLARE PAGES — EDGE CACHING & SECURITY HEADERS
+# ==============================================================================
+
+# 1-Year Immutable Caching for 3D Sequence Frames and Botanical Photos
+/Images/*
+  Cache-Control: public, max-age=31536000, immutable
+  Access-Control-Allow-Origin: *
+
+/Product%20Images/*
+  Cache-Control: public, max-age=31536000, immutable
+  Access-Control-Allow-Origin: *
+
+/Product Images/*
+  Cache-Control: public, max-age=31536000, immutable
+  Access-Control-Allow-Origin: *
+
+/Notes%20Images/*
+  Cache-Control: public, max-age=31536000, immutable
+  Access-Control-Allow-Origin: *
+
+/Notes Images/*
+  Cache-Control: public, max-age=31536000, immutable
+  Access-Control-Allow-Origin: *
+
+/*.png
+  Cache-Control: public, max-age=31536000, immutable
+  Access-Control-Allow-Origin: *
+
+/*.jpg
+  Cache-Control: public, max-age=31536000, immutable
+  Access-Control-Allow-Origin: *
+
+/*.jpeg
+  Cache-Control: public, max-age=31536000, immutable
+  Access-Control-Allow-Origin: *
+
+/*.webp
+  Cache-Control: public, max-age=31536000, immutable
+  Access-Control-Allow-Origin: *
+
+/*.svg
+  Cache-Control: public, max-age=31536000, immutable
+  Access-Control-Allow-Origin: *
+
+/*.ico
+  Cache-Control: public, max-age=31536000, immutable
+  Access-Control-Allow-Origin: *
+
+# Stylesheets & Scripts (1-Month Cache with Versioned Busting)
+/*.css
+  Cache-Control: public, max-age=2592000
+  Access-Control-Allow-Origin: *
+
+/*.js
+  Cache-Control: public, max-age=2592000
+  Access-Control-Allow-Origin: *
+
+# Global HTML & Site Security Headers
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: SAMEORIGIN
+  Referrer-Policy: strict-origin-when-cross-origin
