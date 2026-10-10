@@ -66,131 +66,121 @@
     return 0;
   }
 
-  // Preloading Engine: Prioritized Multi-Stage Streaming
-  function preloadAllFrames() {
-    return new Promise((resolve) => {
-      // 1. First priority: Load Frame 0 immediately for instant First Paint
-      const heroImg = new Image();
-      heroImg.src = getFrameUrl(0);
-      heroImg.onload = () => {
-        images[0] = heroImg;
-        loadedFlags[0] = true;
-        loadedCount++;
-        renderFrame(0);
+  // --- High Performance Progressive Frame Streaming Engine ---
+  const loadingFlags = new Array(TOTAL_FRAMES).fill(false);
 
-        // 2. Load keyframes every 6 frames for swift scrubbing capability
-        loadKeyframes(() => {
-          // 3. Load remaining frames in background
-          loadRemainingFrames(() => {
-            resolve();
-          });
-        });
-      };
-      heroImg.onerror = () => {
-        console.warn('Initial frame failed to load:', heroImg.src);
-        loadRemainingFrames(resolve);
-      };
+  // Load a single frame by index safely
+  function loadSingleFrame(idx, onLoaded) {
+    if (idx < 0 || idx >= TOTAL_FRAMES) return;
+    if (loadedFlags[idx]) {
+      if (onLoaded) onLoaded();
+      return;
+    }
+    if (loadingFlags[idx]) return;
+
+    loadingFlags[idx] = true;
+    const img = new Image();
+    img.src = getFrameUrl(idx);
+    img.onload = () => {
+      images[idx] = img;
+      loadedFlags[idx] = true;
+      loadingFlags[idx] = false;
+      loadedCount++;
+      updateProgress();
+
+      if (onLoaded) onLoaded();
+
+      // If this frame corresponds to our current render position, redraw immediately
+      if (Math.abs(Math.round(currentFrameIndex) - idx) <= 1) {
+        renderFrame(currentFrameIndex);
+      }
+    };
+    img.onerror = () => {
+      loadingFlags[idx] = false;
+      if (onLoaded) onLoaded();
+    };
+  }
+
+  // Request frames around active scrubbing position on-demand
+  function requestFramesAround(centerIdx, range = 4) {
+    const center = Math.round(centerIdx);
+    loadSingleFrame(center);
+    for (let i = 1; i <= range; i++) {
+      if (center + i < TOTAL_FRAMES) loadSingleFrame(center + i);
+      if (center - i >= 0) loadSingleFrame(center - i);
+    }
+  }
+
+  // Fast Progressive Initial Load:
+  // 1. Load Frame 0 first -> Paint immediately & dismiss preloader (< 400ms)
+  // 2. Stream keyframes (every 10 frames = ~30 total) gently in background with low concurrency
+  // 3. Load other frames strictly on-demand as user scrolls or drags
+  function preloadInitialSequence() {
+    return new Promise((resolve) => {
+      // Emergency safeguard: dismiss preloader quickly (< 500ms) under all network conditions
+      const safetyTimeout = setTimeout(dismissPreloader, 500);
+
+      loadSingleFrame(0, () => {
+        clearTimeout(safetyTimeout);
+        // Immediate First Paint!
+        renderFrame(0);
+        dismissPreloader();
+        resolve();
+
+        // After initial paint, stream keyframes gently in idle queue
+        streamKeyframesProgressively();
+      });
     });
   }
 
-  function loadKeyframes(onKeyframesLoaded) {
-    const step = 6;
-    let keyframesToLoad = 0;
-    let keyframesLoaded = 0;
-
+  // Stream a sparse set of keyframes (every 10 frames = ~30 total) gently without choking bandwidth
+  function streamKeyframesProgressively() {
+    const keyframeIndices = [];
+    const step = 10;
     for (let i = step; i < TOTAL_FRAMES; i += step) {
-      keyframesToLoad++;
+      keyframeIndices.push(i);
     }
 
-    if (keyframesToLoad === 0) {
-      onKeyframesLoaded();
-      return;
+    let currentIndex = 0;
+    function loadNextKeyframeBatch() {
+      if (currentIndex >= keyframeIndices.length) return;
+
+      // Load up to 2 keyframes at a time to keep bandwidth clear
+      const batch = keyframeIndices.slice(currentIndex, currentIndex + 2);
+      currentIndex += 2;
+
+      let batchDone = 0;
+      batch.forEach((idx) => {
+        loadSingleFrame(idx, () => {
+          batchDone++;
+          if (batchDone >= batch.length) {
+            // Wait for idle time or 80ms before next batch so network remains crystal clear
+            if ('requestIdleCallback' in window) {
+              window.requestIdleCallback(() => loadNextKeyframeBatch(), { timeout: 200 });
+            } else {
+              setTimeout(loadNextKeyframeBatch, 80);
+            }
+          }
+        });
+      });
     }
 
-    for (let i = step; i < TOTAL_FRAMES; i += step) {
-      const idx = i;
-      const img = new Image();
-      img.src = getFrameUrl(idx);
-      img.onload = () => {
-        images[idx] = img;
-        loadedFlags[idx] = true;
-        loadedCount++;
-        keyframesLoaded++;
-        updateProgress();
-
-        if (keyframesLoaded >= keyframesToLoad) {
-          onKeyframesLoaded();
-        }
-      };
-      img.onerror = () => {
-        keyframesLoaded++;
-        if (keyframesLoaded >= keyframesToLoad) onKeyframesLoaded();
-      };
-    }
-  }
-
-  function loadRemainingFrames(onComplete) {
-    let pendingCount = 0;
-
-    for (let i = 0; i < TOTAL_FRAMES; i++) {
-      if (!loadedFlags[i]) pendingCount++;
-    }
-
-    if (pendingCount === 0) {
-      finishLoading(onComplete);
-      return;
-    }
-
-    let remainingDone = 0;
-
-    for (let i = 0; i < TOTAL_FRAMES; i++) {
-      if (loadedFlags[i]) continue;
-
-      const idx = i;
-      const img = new Image();
-      img.src = getFrameUrl(idx);
-      img.onload = () => {
-        images[idx] = img;
-        loadedFlags[idx] = true;
-        loadedCount++;
-        remainingDone++;
-        updateProgress();
-
-        if (remainingDone >= pendingCount) {
-          finishLoading(onComplete);
-        }
-      };
-      img.onerror = () => {
-        remainingDone++;
-        if (remainingDone >= pendingCount) {
-          finishLoading(onComplete);
-        }
-      };
-    }
+    // Start background streaming after 250ms to allow fonts & core layout to finish first
+    setTimeout(loadNextKeyframeBatch, 250);
   }
 
   function updateProgress() {
-    const percent = Math.min(100, Math.round((loadedCount / TOTAL_FRAMES) * 100));
-    progressBar.style.width = `${percent}%`;
-    progressPercent.textContent = `${percent}%`;
-
-    if (percent > 40 && preloader.classList.contains('active-initial')) {
-      // Allow early dismissal once enough keyframes exist for immediate interactivity
-      dismissPreloader();
-    }
-  }
-
-  function finishLoading(onComplete) {
-    updateProgress();
-    setTimeout(() => {
-      dismissPreloader();
-      if (onComplete) onComplete();
-    }, 300);
+    const percent = Math.min(100, Math.round((loadedCount / 30) * 100));
+    if (progressBar) progressBar.style.width = `${percent}%`;
+    if (progressPercent) progressPercent.textContent = `${percent}%`;
   }
 
   function dismissPreloader() {
-    if (!preloader.classList.contains('hidden')) {
+    if (preloader && !preloader.classList.contains('hidden')) {
       preloader.classList.add('hidden');
+      setTimeout(() => {
+        if (preloader) preloader.style.display = 'none';
+      }, 300);
     }
   }
 
@@ -209,6 +199,9 @@
 
   function renderFrame(frameIdx) {
     const safeIdx = Math.max(0, Math.min(TOTAL_FRAMES - 1, Math.round(frameIdx)));
+    // Request target frame and immediate neighbors on-demand
+    requestFramesAround(safeIdx, 4);
+
     const renderIdx = getNearestLoadedFrame(safeIdx);
     const img = images[renderIdx];
 
@@ -1058,9 +1051,9 @@
     // Initial canvas sizing
     resizeCanvas();
 
-    // Start frame preloading and render loop
-    preloadAllFrames().then(() => {
-      console.log('Arham Aurà 3D Sequence: All 299 frames ready.');
+    // Start progressive frame sequence engine
+    preloadInitialSequence().then(() => {
+      console.log('Arham Aurà 3D Sequence: Hero painted, streaming progressively.');
     });
 
     requestAnimationFrame(updateAnimationLoop);

@@ -82,7 +82,7 @@ a {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.8s;
+  transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.3s;
 }
 
 .preloader.hidden {
@@ -531,6 +531,13 @@ a {
   opacity: 1;
   transform: translateY(0) scale(1);
   pointer-events: auto;
+}
+
+/* Ensure first story card paints immediately without animation delay for fast LCP */
+.story-card[data-phase="1"].active {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  transition: opacity 0.2s ease-out, transform 0.2s ease-out;
 }
 
 /* Phase Positioning across the viewport for dynamic movement */

@@ -54,7 +54,8 @@
   <link
     href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,400&family=Great+Vibes&family=Jost:wght@300;400;500;600&family=Montserrat:wght@300;400;500&family=Rozha+One&display=swap"
     rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=11">
+  <link rel="preload" as="image" href="./Images/ezgif-frame-001.png" fetchpriority="high">
+  <link rel="stylesheet" href="style.css?v=12">
 
   <!-- JSON-LD Structured Data for Search Engine Rich Snippets -->
   <script type="application/ld+json">
@@ -323,7 +324,7 @@
             <div class="pyramid-tier-badge">TOP NOTES</div>
             <div class="pyramid-media">
               <img src="./Notes Images/Honeyed Pears and Blossoms.png" alt="Honey Blossom & Pear Scent Notes"
-                class="pyramid-img" loading="lazy">
+                class="pyramid-img" loading="lazy" decoding="async">
             </div>
             <h3 class="pyramid-title">Honey Blossom & Pear</h3>
             <p class="pyramid-desc">Crisp morning dewdrops, sweet wild honey nectar, and gentle white pear blossoms that
@@ -336,7 +337,7 @@
             <div class="pyramid-tier-badge gold">HEART NOTES</div>
             <div class="pyramid-media">
               <img src="./Notes Images/Daisy, Jasmine and Lilac Bouquet.png" alt="French Daisy & Jasmine Scent Notes"
-                class="pyramid-img" loading="lazy">
+                class="pyramid-img" loading="lazy" decoding="async">
             </div>
             <h3 class="pyramid-title">French Daisy & Jasmine</h3>
             <p class="pyramid-desc">The core botanical bouquet. Pure garden daisies, velvety night-blooming jasmine
@@ -349,7 +350,7 @@
             <div class="pyramid-tier-badge">BASE NOTES</div>
             <div class="pyramid-media">
               <img src="./Notes Images/Vanilla Orchid and Sandalwood Still Life.png"
-                alt="Warm Sandalwood & Vanilla Scent Notes" class="pyramid-img" loading="lazy">
+                alt="Warm Sandalwood & Vanilla Scent Notes" class="pyramid-img" loading="lazy" decoding="async">
             </div>
             <h3 class="pyramid-title">Warm Sandalwood & Vanilla</h3>
             <p class="pyramid-desc">Grounded in traditional Indian Mysore sandalwood, creamy Madagascar vanilla bean,
@@ -367,7 +368,7 @@
           <div class="craft-image-showcase">
             <div class="craft-frame-wrapper">
               <img src="./Product Images/Vanilla Candle in Rustic Sunlight.png" alt="Arham Aura Candle Craftsmanship"
-                class="craft-img" id="craft-preview-img">
+                class="craft-img" id="craft-preview-img" loading="lazy" decoding="async">
               <div class="craft-float-badge">
                 <span class="badge-number">100%</span>
                 <span class="badge-label">Pure Soy & Hand Poured</span>
@@ -415,7 +416,7 @@
             <div class="craft-signature-block">
               <div class="founder-avatar-wrapper">
                 <img src="./Founder/founder pic.png" alt="Krisha Jain — Founder Arham Aurà" class="founder-avatar-img"
-                  width="56" height="56">
+                  width="56" height="56" loading="lazy" decoding="async">
               </div>
               <div>
                 <p class="quote">"Candles crafted not just to illuminate, but to create memories that linger."</p>
@@ -924,7 +925,7 @@
     </div>
   </div>
 
-  <script src="app.js?v=3"></script>
+  <script src="app.js?v=5"></script>
 </body>
 
 </html>
